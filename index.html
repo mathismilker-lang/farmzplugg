@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Farmz Plug</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --bg: #050505; --neon: #39ff14; --glass: rgba(255, 255, 255, 0.08); }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
+        header { padding: 20px; text-align: center; color: var(--neon); font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; border-bottom: 1px solid rgba(57, 255, 20, 0.2); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+        .container { padding: 15px; padding-bottom: 50px; }
+        .product-card { background: var(--glass); border-radius: 20px; margin-bottom: 25px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        video { width: 100%; display: block; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info { padding: 15px; }
+        .product-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; display: block; }
+        .price-display { color: var(--neon); font-size: 1.4rem; font-weight: bold; margin: 10px 0; display: block; }
+        select, textarea { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; background: #111; border: 1px solid #333; color: white; font-size: 1rem; box-sizing: border-box; }
+        .btn { width: 100%; background: var(--neon); color: black; border: none; padding: 18px; border-radius: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
+        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index:1000; justify-content: center; align-items: center; }
+        .modal-card { background: #000; width: 90%; padding: 25px; border-radius: 25px; border: 1px solid var(--neon); box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<header>FARMZ PLUG</header>
+
+<div class="container">
+    
+    <!-- ARTICLE 1: 120u Premium -->
+    <div class="product-card">
+        <video autoplay loop muted playsinline><source src="120u.MP4" type="video/mp4"></video>
+        <div class="info">
+            <span class="product-title">120u Premium 🇲🇦🧈</span>
+            <span class="price-display">Prix: <span id="price1">20.00</span>€</span>
+            <select id="select1" onchange="updatePrice('1')">
+                <option value="2.5g" data-p="20">2.5g — 20€</option>
+                <option value="3.5g" data-p="30">3.5g — 30€</option>
+                <option value="4.5g" data-p="40">4.5g — 40€</option>
+                <option value="5.5g" data-p="50">5.5g — 50€</option>
+                <option value="10.00g" data-p="70">10.00g — 70€</option>
+                <option value="Privé" data-p="0">+ en privé</option>
+            </select>
+            <button class="btn" onclick="openModal('120u Premium 🇲🇦🧈', '1')">Commander</button>
+        </div>
+    </div>
+
+    <!-- ARTICLE 2: Coke -->
+    <div class="product-card">
+        <video autoplay loop muted playsinline><source src="coke.mp4" type="video/mp4"></video>
+        <div class="info">
+            <span class="product-title">Coke ❄️</span>
+            <span class="price-display">Prix: <span id="price2">50.00</span>€</span>
+            <select id="select2" onchange="updatePrice('2')">
+                <option value="1.00g" data-p="50">1.00g — 50€</option>
+                <option value="2.00g" data-p="100">2.00g — 100€</option>
+                <option value="3.00g" data-p="120">3.00g — 120€</option>
+                <option value="4.00g" data-p="160">4.00g — 160€</option>
+                <option value="5.00g" data-p="180">5.00g — 180€</option>
+                <option value="10.00g" data-p="350">10.00g — 350€</option>
+            </select>
+            <button class="btn" onclick="openModal('Coke ❄️', '2')">Commander</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Fenêtre de validation -->
+<div id="modal">
+    <div class="modal-card">
+        <h2 id="m-title" style="margin-top:0; color:var(--neon);"></h2>
+        <p id="m-detail"></p>
+        <label>Mode de paiement :</label>
+        <select id="p-method">
+            <option value="Espèces">Espèces (remise en main propre)</option>
+            <option value="Ticket PCS">Ticket PCS (anonyme)</option>
+        </select>
+        <textarea id="addr" placeholder="Adresse complète (Rue, Ville, Code Postal)"></textarea>
+        <button class="btn" onclick="confirmOrder()">Confirmer la commande</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:gray; width:100%; margin-top:15px; font-size:0.9rem;">Annuler</button>
+    </div>
+</div>
+
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+    let currentOrder = {};
+
+    function updatePrice(id) {
+        const select = document.getElementById('select' + id);
+        const priceDisplay = document.getElementById('price' + id);
+        const price = select.options[select.selectedIndex].getAttribute('data-p');
+        priceDisplay.innerText = price === "0" ? "Voir" : price;
+    }
+
+    function openModal(name, id) {
+        const select = document.getElementById('select' + id);
+        const price = select.options[select.selectedIndex].getAttribute('data-p');
+        const qty = select.value;
+        
+        currentOrder = {
+            name: name,
+            qty: qty,
+            total: price === "0" ? "A voir en privé" : price + "€"
+        };
+
+        document.getElementById('m-title').innerText = name;
+        document.getElementById('m-detail').innerText = "Quantité : " + qty + " | Total : " + currentOrder.total;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function confirmOrder() {
+        const addr = document.getElementById('addr').value;
+        if(!addr || addr.length < 5) return alert("Merci d'indiquer une adresse valide.");
+
+        const data = {
+            item: currentOrder.name,
+            grams: currentOrder.qty,
+            total: currentOrder.total,
+            payment: document.getElementById('p-method').value,
+            address: addr
+        };
+
+        tg.sendData(JSON.stringify(data));
+        tg.close();
+    }
+</script>
+</body>
+</html>
